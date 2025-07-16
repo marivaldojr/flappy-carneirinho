@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird</title>
+    <title>Flappy Carneirinho</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -35,6 +35,7 @@
             display: block;
             width: 100%;
             height: 100%;
+            cursor: pointer;
         }
         #ui-container {
             position: absolute;
@@ -57,24 +58,21 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             z-index: 10;
         }
-        #start-message, #game-over-message {
+        #game-over-message {
             background-color: rgba(0, 0, 0, 0.5);
             padding: 20px;
             border-radius: 10px;
-            display: flex;
+            display: none; /* Escondido por padrão */
             flex-direction: column;
             align-items: center;
         }
-        #start-message h1, #game-over-message h1 {
+        #game-over-message h1 {
             margin: 0 0 10px 0;
             font-size: 1.5rem;
         }
-        #start-message p, #game-over-message p {
+        #game-over-message p {
             margin: 0;
             font-size: 0.8rem;
-        }
-        #game-over-message {
-            display: none; /* Escondido por padrão */
         }
     </style>
 </head>
@@ -84,10 +82,6 @@
     <canvas id="gameCanvas"></canvas>
     <div id="ui-container">
         <div id="score">0</div>
-        <div id="start-message">
-            <h1>Flappy Hero</h1>
-            <p>A carregar...</p>
-        </div>
         <div id="game-over-message">
             <h1>Fim de Jogo</h1>
             <p>Pontuação Final: <span id="final-score">0</span></p>
@@ -102,8 +96,6 @@
     const ctx = canvas.getContext('2d');
     const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score');
-    const startMessage = document.getElementById('start-message');
-    const startMessageText = startMessage.querySelector('p');
     const gameOverMessage = document.getElementById('game-over-message');
     const finalScoreDisplay = document.getElementById('final-score');
 
@@ -113,13 +105,13 @@
     const characterImage = new Image();
     const characterHitImage = new Image();
     const sheepImage = new Image();
+    const introImage = new Image(); // Nova imagem de fundo da introdução
     let imagesLoadedCount = 0;
-    const totalImages = 3; // Agora são 3 imagens para carregar
+    const totalImages = 4; // Agora são 4 imagens para carregar
 
     function onImageLoad() {
         imagesLoadedCount++;
         if (imagesLoadedCount === totalImages) {
-            startMessageText.textContent = 'Clique ou pressione Espaço para começar';
             setup();
             gameLoop();
         }
@@ -127,26 +119,33 @@
 
     function onImageError(e) {
         console.error("Erro ao carregar a imagem:", e.target.src);
-        startMessageText.textContent = 'Erro ao carregar. Clique para jogar.';
-        setup();
-        gameLoop();
+        // Tenta iniciar mesmo com erro, o jogo terá fallbacks
+        imagesLoadedCount++;
+         if (imagesLoadedCount === totalImages) {
+            setup();
+            gameLoop();
+        }
     }
     
     characterImage.crossOrigin = "Anonymous";
     characterHitImage.crossOrigin = "Anonymous";
     sheepImage.crossOrigin = "Anonymous";
+    introImage.crossOrigin = "Anonymous";
     
     characterImage.onload = onImageLoad;
     characterHitImage.onload = onImageLoad;
     sheepImage.onload = onImageLoad;
+    introImage.onload = onImageLoad;
     
     characterImage.onerror = onImageError;
     characterHitImage.onerror = onImageError;
     sheepImage.onerror = onImageError;
+    introImage.onerror = onImageError;
 
     characterImage.src = 'https://i.imgur.com/OV1NOB8.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
+    introImage.src = 'https://i.imgur.com/BCvgnFY.png';
 
 
     // Função para ajustar o tamanho do canvas
@@ -169,8 +168,8 @@
     };
 
     const obstacleProps = {
-        width: 50,  // Largura da coluna de carneiros
-        height: 50, // Altura de cada carneiro individual
+        width: 50,
+        height: 50,
         gap: 220,
         speed: 3,
         frequency: 90
@@ -184,11 +183,9 @@
         obstacles = [];
         score = 0;
         frameCount = 0;
-        gameState = 'start';
-        scoreDisplay.textContent = '0';
-        startMessage.style.display = 'flex';
-        gameOverMessage.style.display = 'none';
+        gameState = 'intro'; // O jogo começa no estado de introdução
         scoreDisplay.style.display = 'none';
+        gameOverMessage.style.display = 'none';
         draw();
     }
 
@@ -206,29 +203,20 @@
         bird.velocity += bird.gravity;
         bird.y += bird.velocity;
 
-        // Gera novos obstáculos
         frameCount++;
         if (frameCount % obstacleProps.frequency === 0) {
             const gapY = Math.random() * (canvas.height - obstacleProps.gap - 200) + 100;
-            obstacles.push({
-                x: canvas.width,
-                y: gapY,
-                passed: false
-            });
+            obstacles.push({ x: canvas.width, y: gapY, passed: false });
         }
 
-        // Move os obstáculos
         for (let i = obstacles.length - 1; i >= 0; i--) {
             obstacles[i].x -= obstacleProps.speed;
-
             if (obstacles[i].x + obstacleProps.width < 0) {
                 obstacles.splice(i, 1);
             }
-
             if (checkCollision(bird, obstacles[i])) {
                 endGame();
             }
-
             if (!obstacles[i].passed && obstacles[i].x < bird.x) {
                 obstacles[i].passed = true;
                 score++;
@@ -236,7 +224,6 @@
             }
         }
 
-        // Verifica colisão com o chão e o teto
         if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {
             endGame();
         }
@@ -246,13 +233,37 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
+        if (gameState === 'intro') {
+            // Desenha a tela de introdução
+            ctx.drawImage(introImage, 0, 0, canvas.width, canvas.height);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            
+            // Título do jogo em duas linhas
+            const titleFontSize = canvas.width / 12; // Tamanho da fonte responsivo
+            ctx.font = `${titleFontSize}px 'Press Start 2P'`;
+            ctx.fillText('Flappy', canvas.width / 2, canvas.height / 3 - titleFontSize * 0.6);
+            ctx.fillText('Carneirinho', canvas.width / 2, canvas.height / 3 + titleFontSize * 0.6);
+            
+            // Instrução para jogar
+            const instructionFontSize = canvas.width / 25; // Tamanho da fonte responsivo
+            ctx.font = `${instructionFontSize}px 'Press Start 2P'`;
+            ctx.fillText('Clique para Jogar', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+        
+        // Desenha o fundo normal durante o jogo
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         let currentImage = characterImage;
         if (gameState === 'over') {
             currentImage = characterHitImage;
         }
 
         // Desenha o personagem
-        if (imagesLoadedCount >= 2) { // Precisa das imagens do personagem
+        if (imagesLoadedCount >= 2) {
             const size = bird.radius * 2.5;
             const x = bird.x - size / 2;
             const y = bird.y - size / 2;
@@ -265,13 +276,11 @@
         }
 
         // Desenha os obstáculos (colunas de carneiros)
-        if (imagesLoadedCount === totalImages) {
+        if (imagesLoadedCount >= 3) {
             for (const obs of obstacles) {
-                // Coluna superior
                 for (let y = obs.y - obstacleProps.height; y > -obstacleProps.height; y -= obstacleProps.height) {
                     ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
                 }
-                // Coluna inferior
                 for (let y = obs.y + obstacleProps.gap; y < canvas.height; y += obstacleProps.height) {
                     ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
                 }
@@ -282,7 +291,7 @@
     function flap() {
         if (gameState === 'playing') {
             bird.velocity = birdProps.lift;
-        } else if (gameState === 'start') {
+        } else if (gameState === 'intro') {
             startGame();
         } else if (gameState === 'over') {
             setTimeout(setup, 200);
@@ -292,7 +301,6 @@
     function startGame() {
         if (imagesLoadedCount < totalImages) return;
         gameState = 'playing';
-        startMessage.style.display = 'none';
         scoreDisplay.style.display = 'block';
         bird.velocity = birdProps.lift;
     }
@@ -309,7 +317,6 @@
         const birdRight = bird.x + bird.radius;
         const birdTop = bird.y - bird.radius;
         const birdBottom = bird.y + bird.radius;
-
         const obsRight = obs.x + obstacleProps.width;
         
         if (birdRight > obs.x && birdLeft < obsRight) {
