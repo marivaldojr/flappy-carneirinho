@@ -100,6 +100,7 @@
     const finalScoreDisplay = document.getElementById('final-score');
 
     let bird, obstacles, score, gameState;
+    let lastTime = 0; // Variável para controlar o tempo entre frames
 
     // --- Carregamento das Imagens ---
     const characterImage = new Image();
@@ -113,7 +114,7 @@
         imagesLoadedCount++;
         if (imagesLoadedCount === totalImages) {
             setup();
-            gameLoop();
+            requestAnimationFrame(gameLoop); // Inicia o loop do jogo
         }
     }
 
@@ -123,7 +124,7 @@
         imagesLoadedCount++;
          if (imagesLoadedCount === totalImages) {
             setup();
-            gameLoop();
+            requestAnimationFrame(gameLoop); // Inicia o loop do jogo
         }
     }
     
@@ -183,25 +184,34 @@
         obstacles = [];
         score = 0;
         frameCount = 0;
+        lastTime = 0; // Reinicia o tempo
         gameState = 'intro'; // O jogo começa no estado de introdução
         scoreDisplay.style.display = 'none';
         gameOverMessage.style.display = 'none';
         draw();
     }
 
-    // Loop principal do jogo
-    function gameLoop() {
+    // Loop principal do jogo, agora baseado no tempo (deltaTime)
+    function gameLoop(currentTime) {
+        if (lastTime === 0) {
+            lastTime = currentTime;
+        }
+        const deltaTime = (currentTime - lastTime) / 1000; // Tempo em segundos
+        lastTime = currentTime;
+
         if (gameState === 'playing') {
-            update();
+            update(deltaTime);
         }
         draw();
         requestAnimationFrame(gameLoop);
     }
 
-    // Atualiza o estado do jogo
-    function update() {
-        bird.velocity += bird.gravity;
-        bird.y += bird.velocity;
+    // Atualiza o estado do jogo, agora dependente do deltaTime
+    function update(deltaTime) {
+        // Multiplicamos os valores de movimento por 60 para manter a velocidade original (que foi ajustada para 60 FPS)
+        // e por deltaTime para tornar a velocidade independente da taxa de frames.
+        bird.velocity += birdProps.gravity * 60 * deltaTime;
+        bird.y += bird.velocity * 60 * deltaTime;
 
         frameCount++;
         if (frameCount % obstacleProps.frequency === 0) {
@@ -210,7 +220,7 @@
         }
 
         for (let i = obstacles.length - 1; i >= 0; i--) {
-            obstacles[i].x -= obstacleProps.speed;
+            obstacles[i].x -= obstacleProps.speed * 60 * deltaTime;
             if (obstacles[i].x + obstacleProps.width < 0) {
                 obstacles.splice(i, 1);
             }
