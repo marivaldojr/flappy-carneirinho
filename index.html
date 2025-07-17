@@ -154,9 +154,10 @@
     const characterImage = new Image();
     const characterHitImage = new Image();
     const sheepImage = new Image();
-    const introImage = new Image(); // Nova imagem de fundo da introdução
+    const introImage = new Image();
+    const gameBackgroundImage = new Image(); // Nova imagem de fundo do jogo
     let imagesLoadedCount = 0;
-    const totalImages = 4; // Agora são 4 imagens para carregar
+    const totalImages = 5; // Agora são 5 imagens para carregar
 
     function onAssetsLoaded() {
         const elapsedTime = Date.now() - splashStartTime;
@@ -194,21 +195,25 @@
     characterHitImage.crossOrigin = "Anonymous";
     sheepImage.crossOrigin = "Anonymous";
     introImage.crossOrigin = "Anonymous";
+    gameBackgroundImage.crossOrigin = "Anonymous";
     
     characterImage.onload = onImageLoad;
     characterHitImage.onload = onImageLoad;
     sheepImage.onload = onImageLoad;
     introImage.onload = onImageLoad;
+    gameBackgroundImage.onload = onImageLoad;
     
     characterImage.onerror = onImageError;
     characterHitImage.onerror = onImageError;
     sheepImage.onerror = onImageError;
     introImage.onerror = onImageError;
+    gameBackgroundImage.onerror = onImageError;
 
     characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
     introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
+    gameBackgroundImage.src = 'https://i.imgur.com/0bmZXI3.jpeg'; // URL do fundo do jogo atualizado
 
 
     // Configurações do jogo
@@ -239,6 +244,33 @@
             // Mantém o espaço menor em ecrãs maiores (PC)
             obstacleProps.frequency = 90;
         }
+    }
+
+    // Função para desenhar uma imagem a cobrir o canvas, mantendo a proporção (CORRIGIDA)
+    function drawCoverImage(ctx, img) {
+        const canvasWidth = ctx.canvas.width;
+        const canvasHeight = ctx.canvas.height;
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+
+        if (imgWidth === 0 || imgHeight === 0) return;
+
+        // Calcula a escala necessária para preencher o canvas na largura e na altura
+        const scaleX = canvasWidth / imgWidth;
+        const scaleY = canvasHeight / imgHeight;
+        
+        // Usa a maior escala para garantir que a imagem cobre todo o espaço
+        const scale = Math.max(scaleX, scaleY);
+
+        // Calcula as novas dimensões da imagem
+        const drawWidth = imgWidth * scale;
+        const drawHeight = imgHeight * scale;
+
+        // Calcula a posição para centralizar a imagem
+        const drawX = (canvasWidth - drawWidth) / 2;
+        const drawY = (canvasHeight - drawHeight) / 2;
+        
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
     }
 
     // Função para ajustar o tamanho do canvas
@@ -326,7 +358,7 @@
         
         if (gameState === 'intro') {
             // Desenha a imagem da introdução a cobrir todo o canvas
-            ctx.drawImage(introImage, 0, 0, canvas.width, canvas.height);
+            drawCoverImage(ctx, introImage);
             
             const titleFontSize = canvas.width / 12;
             const titleY = canvas.height * 0.15;
@@ -367,9 +399,8 @@
             return;
         }
         
-        // Desenha o fundo normal durante o jogo
-        ctx.fillStyle = '#87CEEB';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Desenha o fundo do jogo
+        drawCoverImage(ctx, gameBackgroundImage);
 
         // Desenha os obstáculos (colunas de carneiros)
         if (imagesLoadedCount >= 3) {
