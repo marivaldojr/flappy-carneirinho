@@ -147,6 +147,7 @@
 
     let bird, obstacles, score, highScore, gameState;
     let lastTime = 0; // Variável para controlar o tempo entre frames
+    let textAnimationTime = 0; // Variável para a animação do texto
     const splashStartTime = Date.now(); // Grava o tempo de início do carregamento
 
     // --- Carregamento das Imagens ---
@@ -207,7 +208,7 @@
     characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
-    introImage.src = 'https://i.imgur.com/xB0WGyf.png';
+    introImage.src = 'https://i.imgur.com/kGYzL0c.png';
 
 
     // Função para ajustar o tamanho do canvas
@@ -248,6 +249,7 @@
         highScore = localStorage.getItem('flappyCarneirinhoHighScore') || 0;
         frameCount = 0;
         lastTime = 0; // Reinicia o tempo
+        textAnimationTime = 0; // Reinicia a animação do texto
         gameState = 'intro'; // O jogo começa no estado de introdução
         scoreDisplay.style.display = 'none';
         gameOverMessage.style.display = 'none';
@@ -264,6 +266,8 @@
 
         if (gameState === 'playing') {
             update(deltaTime);
+        } else if (gameState === 'intro') {
+            textAnimationTime += deltaTime * 4; // Controla a velocidade da animação
         }
         draw();
         requestAnimationFrame(gameLoop);
@@ -307,15 +311,18 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (gameState === 'intro') {
-            // Desenha a tela de introdução
+            // Desenha a imagem da introdução a cobrir todo o canvas
             ctx.drawImage(introImage, 0, 0, canvas.width, canvas.height);
+            
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = 'lightblue';
-            
+            ctx.fillStyle = '#4A4A4A'; // Cor do texto alterada para cinzento-escuro
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)'; // Adiciona uma sombra clara para legibilidade
+            ctx.shadowBlur = 3;
+
             // Posições Y para o texto ajustadas
             const titleY = canvas.height * 0.15;
-            const instructionY = canvas.height * 0.95;
+            const instructionY = canvas.height * 0.90; // Aumenta a distância do inferior
 
             // Título do jogo em duas linhas
             const titleFontSize = canvas.width / 12;
@@ -323,10 +330,15 @@
             ctx.fillText('Flappy', canvas.width / 2, titleY - titleFontSize * 0.6);
             ctx.fillText('Carneirinho', canvas.width / 2, titleY + titleFontSize * 0.6);
             
-            // Instrução para jogar
-            const instructionFontSize = canvas.width / 25;
+            // Instrução para jogar com animação
+            const baseInstructionFontSize = canvas.width / 25;
+            const fontAnimation = Math.sin(textAnimationTime) * 1.5; // Amplitude da animação
+            const instructionFontSize = baseInstructionFontSize + fontAnimation;
             ctx.font = `${instructionFontSize}px 'Press Start 2P'`;
             ctx.fillText('Clique para Jogar', canvas.width / 2, instructionY);
+
+            ctx.shadowColor = 'transparent'; // Remove a sombra para os outros elementos
+            ctx.shadowBlur = 0;
             return;
         }
         
