@@ -57,6 +57,31 @@
             align-items: center;
             pointer-events: none; /* Permite cliques através do container */
         }
+        #splash-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #3d2a33;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        #splash-screen img {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
         #score {
             position: absolute;
             top: 20px;
@@ -93,6 +118,10 @@
 <body>
 
 <div id="game-container">
+    <div id="splash-screen">
+        <img src="https://i.imgur.com/lEmmxG8.png" alt="A carregar...">
+        <p>A carregar...</p>
+    </div>
     <canvas id="gameCanvas"></canvas>
     <div id="ui-container">
         <div id="score">0</div>
@@ -110,6 +139,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const gameContainer = document.getElementById('game-container');
+    const splashScreen = document.getElementById('splash-screen');
     const scoreDisplay = document.getElementById('score');
     const gameOverMessage = document.getElementById('game-over-message');
     const finalScoreDisplay = document.getElementById('final-score');
@@ -117,6 +147,7 @@
 
     let bird, obstacles, score, highScore, gameState;
     let lastTime = 0; // Variável para controlar o tempo entre frames
+    const splashStartTime = Date.now(); // Grava o tempo de início do carregamento
 
     // --- Carregamento das Imagens ---
     const characterImage = new Image();
@@ -126,21 +157,35 @@
     let imagesLoadedCount = 0;
     const totalImages = 4; // Agora são 4 imagens para carregar
 
+    function onAssetsLoaded() {
+        const elapsedTime = Date.now() - splashStartTime;
+        const remainingTime = 3000 - elapsedTime;
+
+        const startGameLogic = () => {
+            splashScreen.style.display = 'none'; // Esconde a tela de splash
+            setup();
+            requestAnimationFrame(gameLoop); // Inicia o loop do jogo
+        };
+
+        if (remainingTime > 0) {
+            setTimeout(startGameLogic, remainingTime);
+        } else {
+            startGameLogic();
+        }
+    }
+
     function onImageLoad() {
         imagesLoadedCount++;
         if (imagesLoadedCount === totalImages) {
-            setup();
-            requestAnimationFrame(gameLoop); // Inicia o loop do jogo
+            onAssetsLoaded();
         }
     }
 
     function onImageError(e) {
         console.error("Erro ao carregar a imagem:", e.target.src);
-        // Tenta iniciar mesmo com erro, o jogo terá fallbacks
         imagesLoadedCount++;
-         if (imagesLoadedCount === totalImages) {
-            setup();
-            requestAnimationFrame(gameLoop); // Inicia o loop do jogo
+        if (imagesLoadedCount === totalImages) {
+           onAssetsLoaded();
         }
     }
     
