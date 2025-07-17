@@ -208,17 +208,8 @@
     characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
-    introImage.src = 'https://i.imgur.com/kGYzL0c.png';
+    introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
 
-
-    // Função para ajustar o tamanho do canvas
-    function resizeCanvas() {
-        canvas.width = gameContainer.clientWidth;
-        canvas.height = gameContainer.clientHeight;
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
     // Configurações do jogo
     const birdProps = {
@@ -235,13 +226,36 @@
         height: 50,
         gap: 220,
         speed: 3,
-        frequency: 90
+        frequency: 90 // Valor padrão, será ajustado
     };
+
+    // --- Funções ---
+    // Esta função define a frequência dos obstáculos com base no tamanho do ecrã
+    function setObstacleFrequency() {
+        // Aumenta o espaço em ecrãs menores (telemóveis)
+        if (window.innerWidth < 768) {
+            obstacleProps.frequency = 120;
+        } else {
+            // Mantém o espaço menor em ecrãs maiores (PC)
+            obstacleProps.frequency = 90;
+        }
+    }
+
+    // Função para ajustar o tamanho do canvas
+    function resizeCanvas() {
+        canvas.width = gameContainer.clientWidth;
+        canvas.height = gameContainer.clientHeight;
+        setObstacleFrequency(); // Reajusta a frequência ao mudar o tamanho do ecrã
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); // Chama para definir os valores iniciais
 
     let frameCount = 0;
 
     // Função para inicializar ou reiniciar o jogo
     function setup() {
+        setObstacleFrequency(); // Define a frequência inicial
         bird = { ...birdProps, y: canvas.height / 2 };
         obstacles = [];
         score = 0;
@@ -314,31 +328,42 @@
             // Desenha a imagem da introdução a cobrir todo o canvas
             ctx.drawImage(introImage, 0, 0, canvas.width, canvas.height);
             
+            const titleFontSize = canvas.width / 12;
+            const titleY = canvas.height * 0.15;
+            const bannerHeight = (titleFontSize * 2) + 40;
+            const bannerY = titleY - (bannerHeight / 2);
+
+            // Faixa preta com opacidade
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, bannerY, canvas.width, bannerHeight);
+
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#4A4A4A'; // Cor do texto alterada para cinzento-escuro
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)'; // Adiciona uma sombra clara para legibilidade
-            ctx.shadowBlur = 3;
-
-            // Posições Y para o texto ajustadas
-            const titleY = canvas.height * 0.15;
-            const instructionY = canvas.height * 0.90; // Aumenta a distância do inferior
-
+            
+            // Estilo do título
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'black';
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.shadowBlur = 0;
+            
             // Título do jogo em duas linhas
-            const titleFontSize = canvas.width / 12;
             ctx.font = `${titleFontSize}px 'Press Start 2P'`;
             ctx.fillText('Flappy', canvas.width / 2, titleY - titleFontSize * 0.6);
             ctx.fillText('Carneirinho', canvas.width / 2, titleY + titleFontSize * 0.6);
             
-            // Instrução para jogar com animação
+            // Estilo da instrução
+            const instructionY = canvas.height * 0.90;
             const baseInstructionFontSize = canvas.width / 25;
-            const fontAnimation = Math.sin(textAnimationTime) * 1.5; // Amplitude da animação
+            const fontAnimation = Math.sin(textAnimationTime) * 1.5;
             const instructionFontSize = baseInstructionFontSize + fontAnimation;
             ctx.font = `${instructionFontSize}px 'Press Start 2P'`;
             ctx.fillText('Clique para Jogar', canvas.width / 2, instructionY);
 
-            ctx.shadowColor = 'transparent'; // Remove a sombra para os outros elementos
-            ctx.shadowBlur = 0;
+            // Reset da sombra
+            ctx.shadowColor = 'transparent';
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             return;
         }
         
@@ -347,7 +372,6 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Desenha os obstáculos (colunas de carneiros)
-        // Eles congelam no fim do jogo porque a função update() para
         if (imagesLoadedCount >= 3) {
             for (const obs of obstacles) {
                 for (let y = obs.y - obstacleProps.height; y > -obstacleProps.height; y -= obstacleProps.height) {
@@ -376,7 +400,7 @@
             // Quando o jogo acaba, desenha o sprite triste no centro e menor
             if (imagesLoadedCount >= 2) {
                 const img = characterHitImage;
-                const scale = 0.7; // Fator de escala revertido para o tamanho anterior
+                const scale = 0.56;
                 const w = img.naturalWidth * scale;
                 const h = img.naturalHeight * scale;
                 const x = canvas.width / 2 - w / 2;
@@ -386,7 +410,7 @@
                 // Fallback para o sprite triste
                 ctx.beginPath();
                 ctx.arc(canvas.width / 2, canvas.height / 2, bird.radius * 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#FF0000'; // Vermelho para indicar erro/fim
+                ctx.fillStyle = '#FF0000';
                 ctx.fill();
             }
         }
