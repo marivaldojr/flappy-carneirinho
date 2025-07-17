@@ -143,10 +143,10 @@
     sheepImage.onerror = onImageError;
     introImage.onerror = onImageError;
 
-    characterImage.src = 'https://i.imgur.com/OV1NOB8.png';
+    characterImage.src = 'https://i.imgur.com/y3iXJfi.png'; // URL do sprite inicial atualizado
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
-    introImage.src = 'https://i.imgur.com/xB0WGyf.png'; // URL da imagem de introdução atualizado
+    introImage.src = 'https://i.imgur.com/xB0WGyf.png';
 
 
     // Função para ajustar o tamanho do canvas
@@ -248,7 +248,7 @@
             ctx.drawImage(introImage, 0, 0, canvas.width, canvas.height);
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = 'lightblue'; // Cor do texto alterada para azul-bebé
+            ctx.fillStyle = 'lightblue';
             
             // Posições Y para o texto ajustadas
             const titleY = canvas.height * 0.15; // 15% do topo
