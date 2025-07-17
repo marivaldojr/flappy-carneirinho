@@ -18,6 +18,14 @@
             color: white;
             text-align: center;
             overflow: hidden;
+            /* Desativa comportamentos de toque padrão do navegador que podem causar piscar */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         #game-container {
             position: relative;
