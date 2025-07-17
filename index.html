@@ -59,12 +59,18 @@
             z-index: 10;
         }
         #game-over-message {
-            background-color: rgba(0, 0, 0, 0.5);
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            background-color: rgba(0, 0, 0, 0.7);
             padding: 20px;
             border-radius: 10px;
             display: none; /* Escondido por padrão */
             flex-direction: column;
             align-items: center;
+            box-sizing: border-box;
         }
         #game-over-message h1 {
             margin: 0 0 10px 0;
@@ -143,7 +149,7 @@
     sheepImage.onerror = onImageError;
     introImage.onerror = onImageError;
 
-    characterImage.src = 'https://i.imgur.com/y3iXJfi.png'; // URL do sprite inicial atualizado
+    characterImage.src = 'https://i.imgur.com/y3iXJfi.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
     introImage.src = 'https://i.imgur.com/xB0WGyf.png';
@@ -251,17 +257,17 @@
             ctx.fillStyle = 'lightblue';
             
             // Posições Y para o texto ajustadas
-            const titleY = canvas.height * 0.15; // 15% do topo
-            const instructionY = canvas.height * 0.95; // 95% do topo (mais para baixo)
+            const titleY = canvas.height * 0.15;
+            const instructionY = canvas.height * 0.95;
 
             // Título do jogo em duas linhas
-            const titleFontSize = canvas.width / 12; // Tamanho da fonte responsivo
+            const titleFontSize = canvas.width / 12;
             ctx.font = `${titleFontSize}px 'Press Start 2P'`;
             ctx.fillText('Flappy', canvas.width / 2, titleY - titleFontSize * 0.6);
             ctx.fillText('Carneirinho', canvas.width / 2, titleY + titleFontSize * 0.6);
             
             // Instrução para jogar
-            const instructionFontSize = canvas.width / 25; // Tamanho da fonte responsivo
+            const instructionFontSize = canvas.width / 25;
             ctx.font = `${instructionFontSize}px 'Press Start 2P'`;
             ctx.fillText('Clique para Jogar', canvas.width / 2, instructionY);
             return;
@@ -271,25 +277,8 @@
         ctx.fillStyle = '#87CEEB';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        let currentImage = characterImage;
-        if (gameState === 'over') {
-            currentImage = characterHitImage;
-        }
-
-        // Desenha o personagem
-        if (imagesLoadedCount >= 2) {
-            const size = bird.radius * 2.5;
-            const x = bird.x - size / 2;
-            const y = bird.y - size / 2;
-            ctx.drawImage(currentImage, x, y, size, size);
-        } else {
-            ctx.beginPath();
-            ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#FFD700';
-            ctx.fill();
-        }
-
         // Desenha os obstáculos (colunas de carneiros)
+        // Eles congelam no fim do jogo porque a função update() para
         if (imagesLoadedCount >= 3) {
             for (const obs of obstacles) {
                 for (let y = obs.y - obstacleProps.height; y > -obstacleProps.height; y -= obstacleProps.height) {
@@ -298,6 +287,38 @@
                 for (let y = obs.y + obstacleProps.gap; y < canvas.height; y += obstacleProps.height) {
                     ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
                 }
+            }
+        }
+        
+        // Desenha o personagem
+        if (gameState === 'playing') {
+            if (imagesLoadedCount >= 2) {
+                const size = bird.radius * 2.5;
+                const x = bird.x - size / 2;
+                const y = bird.y - size / 2;
+                ctx.drawImage(characterImage, x, y, size, size);
+            } else {
+                ctx.beginPath();
+                ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFD700';
+                ctx.fill();
+            }
+        } else if (gameState === 'over') {
+            // Quando o jogo acaba, desenha o sprite triste no centro e menor
+            if (imagesLoadedCount >= 2) {
+                const img = characterHitImage;
+                const scale = 0.7; // Fator de escala revertido para o tamanho anterior
+                const w = img.naturalWidth * scale;
+                const h = img.naturalHeight * scale;
+                const x = canvas.width / 2 - w / 2;
+                const y = canvas.height / 2 - h / 2;
+                ctx.drawImage(img, x, y, w, h);
+            } else {
+                // Fallback para o sprite triste
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, bird.radius * 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#FF0000'; // Vermelho para indicar erro/fim
+                ctx.fill();
             }
         }
     }
