@@ -148,6 +148,7 @@
     let bird, obstacles, score, highScore, gameState;
     let lastTime = 0; // Variável para controlar o tempo entre frames
     let textAnimationTime = 0; // Variável para a animação do texto
+    let backgroundX = 0; // Posição X do fundo para o scrolling
     const splashStartTime = Date.now(); // Grava o tempo de início do carregamento
 
     // --- Carregamento das Imagens ---
@@ -213,7 +214,7 @@
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
     introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
-    gameBackgroundImage.src = 'https://i.imgur.com/0bmZXI3.jpeg'; // URL do fundo do jogo atualizado
+    gameBackgroundImage.src = 'https://i.imgur.com/mLFWuDo.jpeg';
 
 
     // Configurações do jogo
@@ -255,18 +256,11 @@
 
         if (imgWidth === 0 || imgHeight === 0) return;
 
-        // Calcula a escala necessária para preencher o canvas na largura e na altura
         const scaleX = canvasWidth / imgWidth;
         const scaleY = canvasHeight / imgHeight;
-        
-        // Usa a maior escala para garantir que a imagem cobre todo o espaço
         const scale = Math.max(scaleX, scaleY);
-
-        // Calcula as novas dimensões da imagem
         const drawWidth = imgWidth * scale;
         const drawHeight = imgHeight * scale;
-
-        // Calcula a posição para centralizar a imagem
         const drawX = (canvasWidth - drawWidth) / 2;
         const drawY = (canvasHeight - drawHeight) / 2;
         
@@ -296,6 +290,7 @@
         frameCount = 0;
         lastTime = 0; // Reinicia o tempo
         textAnimationTime = 0; // Reinicia a animação do texto
+        backgroundX = 0; // Reinicia a posição do fundo
         gameState = 'intro'; // O jogo começa no estado de introdução
         scoreDisplay.style.display = 'none';
         gameOverMessage.style.display = 'none';
@@ -321,8 +316,10 @@
 
     // Atualiza o estado do jogo, agora dependente do deltaTime
     function update(deltaTime) {
-        // Multiplicamos os valores de movimento por 60 para manter a velocidade original (que foi ajustada para 60 FPS)
-        // e por deltaTime para tornar a velocidade independente da taxa de frames.
+        // Move o fundo
+        backgroundX -= (obstacleProps.speed / 2) * 60 * deltaTime;
+
+        // Move o personagem
         bird.velocity += birdProps.gravity * 60 * deltaTime;
         bird.y += bird.velocity * 60 * deltaTime;
 
@@ -399,8 +396,24 @@
             return;
         }
         
-        // Desenha o fundo do jogo
-        drawCoverImage(ctx, gameBackgroundImage);
+        // Desenha o fundo do jogo com scrolling
+        const bgImg = gameBackgroundImage;
+        if (bgImg.naturalWidth > 0) {
+            const scale = canvas.height / bgImg.naturalHeight;
+            const scaledWidth = bgImg.naturalWidth * scale;
+            
+            // Reinicia a posição do fundo para criar um loop infinito
+            if (backgroundX <= -scaledWidth) {
+                backgroundX = 0;
+            }
+
+            ctx.drawImage(bgImg, backgroundX, 0, scaledWidth, canvas.height);
+            ctx.drawImage(bgImg, backgroundX + scaledWidth, 0, scaledWidth, canvas.height);
+        } else {
+             ctx.fillStyle = '#87CEEB';
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
 
         // Desenha os obstáculos (colunas de carneiros)
         if (imagesLoadedCount >= 3) {
