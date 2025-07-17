@@ -85,8 +85,8 @@
             font-size: 1.5rem;
         }
         #game-over-message p {
-            margin: 0;
-            font-size: 0.8rem;
+            margin: 5px 0;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -98,8 +98,9 @@
         <div id="score">0</div>
         <div id="game-over-message">
             <h1>Fim de Jogo</h1>
-            <p>Pontuação Final: <span id="final-score">0</span></p>
-            <p style="margin-top: 15px;">Clique para jogar novamente</p>
+            <p>Pontuação: <span id="final-score">0</span></p>
+            <p>Recorde: <span id="final-high-score">0</span></p>
+            <p style="margin-top: 15px; font-size: 0.8rem;">Clique para jogar novamente</p>
         </div>
     </div>
 </div>
@@ -112,8 +113,9 @@
     const scoreDisplay = document.getElementById('score');
     const gameOverMessage = document.getElementById('game-over-message');
     const finalScoreDisplay = document.getElementById('final-score');
+    const finalHighScoreDisplay = document.getElementById('final-high-score');
 
-    let bird, obstacles, score, gameState;
+    let bird, obstacles, score, highScore, gameState;
     let lastTime = 0; // Variável para controlar o tempo entre frames
 
     // --- Carregamento das Imagens ---
@@ -157,7 +159,7 @@
     sheepImage.onerror = onImageError;
     introImage.onerror = onImageError;
 
-    characterImage.src = 'https://i.imgur.com/lEmmxG8.png'; // URL do sprite inicial atualizado
+    characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
     characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
     sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
     introImage.src = 'https://i.imgur.com/xB0WGyf.png';
@@ -197,6 +199,8 @@
         bird = { ...birdProps, y: canvas.height / 2 };
         obstacles = [];
         score = 0;
+        scoreDisplay.textContent = score; // Garante que o contador visual reinicia
+        highScore = localStorage.getItem('flappyCarneirinhoHighScore') || 0;
         frameCount = 0;
         lastTime = 0; // Reinicia o tempo
         gameState = 'intro'; // O jogo começa no estado de introdução
@@ -350,7 +354,12 @@
     
     function endGame() {
         gameState = 'over';
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('flappyCarneirinhoHighScore', highScore);
+        }
         finalScoreDisplay.textContent = score;
+        finalHighScoreDisplay.textContent = highScore;
         gameOverMessage.style.display = 'flex';
         scoreDisplay.style.display = 'none';
     }
