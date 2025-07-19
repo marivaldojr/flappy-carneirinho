@@ -134,6 +134,10 @@
     </div>
 </div>
 
+<!-- Elementos de áudio -->
+<audio id="jumpSound" src="jump.wav" preload="auto"></audio>
+<audio id="gameOverSound" src="sheep.wav" preload="auto"></audio>
+
 <script>
     // Seleciona os elementos do DOM
     const canvas = document.getElementById('gameCanvas');
@@ -144,23 +148,67 @@
     const gameOverMessage = document.getElementById('game-over-message');
     const finalScoreDisplay = document.getElementById('final-score');
     const finalHighScoreDisplay = document.getElementById('final-high-score');
+    const jumpSound = document.getElementById('jumpSound');
+    const gameOverSound = document.getElementById('gameOverSound');
 
     let bird, obstacles, score, highScore, gameState;
     let lastTime = 0; // Variável para controlar o tempo entre frames
     let textAnimationTime = 0; // Variável para a animação do texto
-    let backgroundX = 0; // Posição X do fundo para o scrolling
     const splashStartTime = Date.now(); // Grava o tempo de início do carregamento
 
-    // --- Carregamento das Imagens ---
+    // --- Carregamento de Recursos (Imagens e Sons) ---
     const characterImage = new Image();
     const characterHitImage = new Image();
     const sheepImage = new Image();
     const introImage = new Image();
-    const gameBackgroundImage = new Image(); // Nova imagem de fundo do jogo
-    let imagesLoadedCount = 0;
-    const totalImages = 5; // Agora são 5 imagens para carregar
+    const gameBackgroundImage = new Image();
 
-    function onAssetsLoaded() {
+    const assets = {
+        characterImage,
+        characterHitImage,
+        sheepImage,
+        introImage,
+        gameBackgroundImage,
+        jumpSound,
+        gameOverSound
+    };
+    
+    // Configura as fontes e crossOrigin
+    assets.characterImage.crossOrigin = "Anonymous"; assets.characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
+    assets.characterHitImage.crossOrigin = "Anonymous"; assets.characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
+    assets.sheepImage.crossOrigin = "Anonymous"; assets.sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
+    assets.introImage.crossOrigin = "Anonymous"; assets.introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
+    assets.gameBackgroundImage.crossOrigin = "Anonymous"; assets.gameBackgroundImage.src = 'https://i.imgur.com/mLFWuDo.jpeg';
+
+    function loadAsset(asset) {
+        return new Promise((resolve) => {
+            if (asset instanceof HTMLImageElement) {
+                asset.onload = () => resolve(asset);
+                asset.onerror = (err) => {
+                    console.error("Erro a carregar imagem:", asset.src);
+                    resolve(asset); // Resolve mesmo com erro para não bloquear o jogo
+                };
+            } else if (asset instanceof HTMLAudioElement) {
+                asset.addEventListener('canplaythrough', () => resolve(asset), { once: true });
+                asset.addEventListener('error', (err) => {
+                    console.error("Erro a carregar áudio:", asset.src);
+                    resolve(asset); 
+                }, { once: true });
+            }
+        });
+    }
+
+    Promise.all(Object.values(assets).map(loadAsset))
+        .then(() => {
+            onAllAssetsLoaded();
+        })
+        .catch(err => {
+            console.error("Falha crítica ao carregar um recurso essencial:", err);
+            onAllAssetsLoaded();
+        });
+
+
+    function onAllAssetsLoaded() {
         const elapsedTime = Date.now() - splashStartTime;
         const remainingTime = 3000 - elapsedTime;
 
@@ -176,47 +224,7 @@
             startGameLogic();
         }
     }
-
-    function onImageLoad() {
-        imagesLoadedCount++;
-        if (imagesLoadedCount === totalImages) {
-            onAssetsLoaded();
-        }
-    }
-
-    function onImageError(e) {
-        console.error("Erro ao carregar a imagem:", e.target.src);
-        imagesLoadedCount++;
-        if (imagesLoadedCount === totalImages) {
-           onAssetsLoaded();
-        }
-    }
     
-    characterImage.crossOrigin = "Anonymous";
-    characterHitImage.crossOrigin = "Anonymous";
-    sheepImage.crossOrigin = "Anonymous";
-    introImage.crossOrigin = "Anonymous";
-    gameBackgroundImage.crossOrigin = "Anonymous";
-    
-    characterImage.onload = onImageLoad;
-    characterHitImage.onload = onImageLoad;
-    sheepImage.onload = onImageLoad;
-    introImage.onload = onImageLoad;
-    gameBackgroundImage.onload = onImageLoad;
-    
-    characterImage.onerror = onImageError;
-    characterHitImage.onerror = onImageError;
-    sheepImage.onerror = onImageError;
-    introImage.onerror = onImageError;
-    gameBackgroundImage.onerror = onImageError;
-
-    characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
-    characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
-    sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
-    introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
-    gameBackgroundImage.src = 'https://i.imgur.com/mLFWuDo.jpeg';
-
-
     // Configurações do jogo
     const birdProps = {
         x: 50,
@@ -235,19 +243,15 @@
         frequency: 90 // Valor padrão, será ajustado
     };
 
-    // --- Funções ---
-    // Esta função define a frequência dos obstáculos com base no tamanho do ecrã
+    // --- Funções do Jogo ---
     function setObstacleFrequency() {
-        // Aumenta o espaço em ecrãs menores (telemóveis)
         if (window.innerWidth < 768) {
             obstacleProps.frequency = 120;
         } else {
-            // Mantém o espaço menor em ecrãs maiores (PC)
             obstacleProps.frequency = 90;
         }
     }
 
-    // Função para desenhar uma imagem a cobrir o canvas, mantendo a proporção (CORRIGIDA)
     function drawCoverImage(ctx, img) {
         const canvasWidth = ctx.canvas.width;
         const canvasHeight = ctx.canvas.height;
@@ -267,59 +271,52 @@
         ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
     }
 
-    // Função para ajustar o tamanho do canvas
     function resizeCanvas() {
         canvas.width = gameContainer.clientWidth;
         canvas.height = gameContainer.clientHeight;
-        setObstacleFrequency(); // Reajusta a frequência ao mudar o tamanho do ecrã
+        setObstacleFrequency();
     }
 
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas(); // Chama para definir os valores iniciais
+    resizeCanvas();
 
     let frameCount = 0;
 
-    // Função para inicializar ou reiniciar o jogo
     function setup() {
-        setObstacleFrequency(); // Define a frequência inicial
+        setObstacleFrequency();
         bird = { ...birdProps, y: canvas.height / 2 };
         obstacles = [];
         score = 0;
-        scoreDisplay.textContent = score; // Garante que o contador visual reinicia
+        scoreDisplay.textContent = score;
         highScore = localStorage.getItem('flappyCarneirinhoHighScore') || 0;
         frameCount = 0;
-        lastTime = 0; // Reinicia o tempo
-        textAnimationTime = 0; // Reinicia a animação do texto
-        backgroundX = 0; // Reinicia a posição do fundo
-        gameState = 'intro'; // O jogo começa no estado de introdução
+        lastTime = 0;
+        textAnimationTime = 0;
+        backgroundX = 0;
+        gameState = 'intro';
         scoreDisplay.style.display = 'none';
         gameOverMessage.style.display = 'none';
         draw();
     }
 
-    // Loop principal do jogo, agora baseado no tempo (deltaTime)
     function gameLoop(currentTime) {
         if (lastTime === 0) {
             lastTime = currentTime;
         }
-        const deltaTime = (currentTime - lastTime) / 1000; // Tempo em segundos
+        const deltaTime = (currentTime - lastTime) / 1000;
         lastTime = currentTime;
 
         if (gameState === 'playing') {
             update(deltaTime);
         } else if (gameState === 'intro') {
-            textAnimationTime += deltaTime * 4; // Controla a velocidade da animação
+            textAnimationTime += deltaTime * 4;
         }
         draw();
         requestAnimationFrame(gameLoop);
     }
 
-    // Atualiza o estado do jogo, agora dependente do deltaTime
     function update(deltaTime) {
-        // Move o fundo
         backgroundX -= (obstacleProps.speed / 2) * 60 * deltaTime;
-
-        // Move o personagem
         bird.velocity += birdProps.gravity * 60 * deltaTime;
         bird.y += bird.velocity * 60 * deltaTime;
 
@@ -349,12 +346,10 @@
         }
     }
     
-    // Desenha tudo no canvas
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (gameState === 'intro') {
-            // Desenha a imagem da introdução a cobrir todo o canvas
             drawCoverImage(ctx, introImage);
             
             const titleFontSize = canvas.width / 12;
@@ -362,26 +357,22 @@
             const bannerHeight = (titleFontSize * 2) + 40;
             const bannerY = titleY - (bannerHeight / 2);
 
-            // Faixa preta com opacidade
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fillRect(0, bannerY, canvas.width, bannerHeight);
 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // Estilo do título
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'black';
             ctx.shadowOffsetX = 2;
             ctx.shadowOffsetY = 2;
             ctx.shadowBlur = 0;
             
-            // Título do jogo em duas linhas
             ctx.font = `${titleFontSize}px 'Press Start 2P'`;
             ctx.fillText('Flappy', canvas.width / 2, titleY - titleFontSize * 0.6);
             ctx.fillText('Carneirinho', canvas.width / 2, titleY + titleFontSize * 0.6);
             
-            // Estilo da instrução
             const instructionY = canvas.height * 0.90;
             const baseInstructionFontSize = canvas.width / 25;
             const fontAnimation = Math.sin(textAnimationTime) * 1.5;
@@ -389,20 +380,17 @@
             ctx.font = `${instructionFontSize}px 'Press Start 2P'`;
             ctx.fillText('Clique para Jogar', canvas.width / 2, instructionY);
 
-            // Reset da sombra
             ctx.shadowColor = 'transparent';
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             return;
         }
         
-        // Desenha o fundo do jogo com scrolling
         const bgImg = gameBackgroundImage;
         if (bgImg.naturalWidth > 0) {
             const scale = canvas.height / bgImg.naturalHeight;
             const scaledWidth = bgImg.naturalWidth * scale;
             
-            // Reinicia a posição do fundo para criar um loop infinito
             if (backgroundX <= -scaledWidth) {
                 backgroundX = 0;
             }
@@ -414,55 +402,40 @@
              ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-
-        // Desenha os obstáculos (colunas de carneiros)
-        if (imagesLoadedCount >= 3) {
-            for (const obs of obstacles) {
-                for (let y = obs.y - obstacleProps.height; y > -obstacleProps.height; y -= obstacleProps.height) {
-                    ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
-                }
-                for (let y = obs.y + obstacleProps.gap; y < canvas.height; y += obstacleProps.height) {
-                    ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
-                }
+        for (const obs of obstacles) {
+            for (let y = obs.y - obstacleProps.height; y > -obstacleProps.height; y -= obstacleProps.height) {
+                ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
+            }
+            for (let y = obs.y + obstacleProps.gap; y < canvas.height; y += obstacleProps.height) {
+                ctx.drawImage(sheepImage, obs.x, y, obstacleProps.width, obstacleProps.height);
             }
         }
         
-        // Desenha o personagem
         if (gameState === 'playing') {
-            if (imagesLoadedCount >= 2) {
-                const size = bird.radius * 2.5;
-                const x = bird.x - size / 2;
-                const y = bird.y - size / 2;
-                ctx.drawImage(characterImage, x, y, size, size);
-            } else {
-                ctx.beginPath();
-                ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
-                ctx.fillStyle = '#FFD700';
-                ctx.fill();
-            }
+            const size = bird.radius * 2.5;
+            const x = bird.x - size / 2;
+            const y = bird.y - size / 2;
+            ctx.drawImage(characterImage, x, y, size, size);
         } else if (gameState === 'over') {
-            // Quando o jogo acaba, desenha o sprite triste no centro e menor
-            if (imagesLoadedCount >= 2) {
-                const img = characterHitImage;
-                const scale = 0.56;
-                const w = img.naturalWidth * scale;
-                const h = img.naturalHeight * scale;
-                const x = canvas.width / 2 - w / 2;
-                const y = canvas.height / 2 - h / 2;
-                ctx.drawImage(img, x, y, w, h);
-            } else {
-                // Fallback para o sprite triste
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, bird.radius * 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#FF0000';
-                ctx.fill();
-            }
+            const img = characterHitImage;
+            const scale = 0.56;
+            const w = img.naturalWidth * scale;
+            const h = img.naturalHeight * scale;
+            const x = canvas.width / 2 - w / 2;
+            const y = canvas.height / 2 - h / 2;
+            ctx.drawImage(img, x, y, w, h);
         }
+    }
+
+    function performJump() {
+        bird.velocity = birdProps.lift;
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(error => {});
     }
 
     function flap() {
         if (gameState === 'playing') {
-            bird.velocity = birdProps.lift;
+            performJump();
         } else if (gameState === 'intro') {
             startGame();
         } else if (gameState === 'over') {
@@ -471,14 +444,18 @@
     }
 
     function startGame() {
-        if (imagesLoadedCount < totalImages) return;
         gameState = 'playing';
         scoreDisplay.style.display = 'block';
-        bird.velocity = birdProps.lift;
+        performJump(); // Primeiro salto
     }
     
     function endGame() {
+        if (gameState === 'over') return;
         gameState = 'over';
+
+        gameOverSound.currentTime = 0;
+        gameOverSound.play().catch(error => {});
+
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('flappyCarneirinhoHighScore', highScore);
@@ -511,7 +488,10 @@
         if (e.code === 'Space') { e.preventDefault(); flap(); }
     });
     document.addEventListener('mousedown', flap);
-    document.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); });
+    document.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        flap();
+    }, { passive: false });
 
 </script>
 

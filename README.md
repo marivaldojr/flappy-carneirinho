@@ -1,2 +1,2 @@
-# flappy-ramon
-Flappy Ramon
+# flappy-carneirinho
+Flappy Carneirinho
