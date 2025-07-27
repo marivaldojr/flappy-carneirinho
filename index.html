@@ -177,11 +177,11 @@
     };
 
     // Configura as fontes e crossOrigin
-    assets.characterImage.src = 'character.png';
-    assets.characterHitImage.src = 'character-hit.png';
-    assets.sheepImage.src = 'shoulder.png';
-    assets.introImage.src = 'intro.png';
-    assets.gameBackgroundImage.src = 'fundo.jpeg';
+    assets.characterImage.crossOrigin = "Anonymous"; assets.characterImage.src = 'https://i.imgur.com/lEmmxG8.png';
+    assets.characterHitImage.crossOrigin = "Anonymous"; assets.characterHitImage.src = 'https://i.imgur.com/kjRAXfJ.png';
+    assets.sheepImage.crossOrigin = "Anonymous"; assets.sheepImage.src = 'https://i.imgur.com/YW8MXms.png';
+    assets.introImage.crossOrigin = "Anonymous"; assets.introImage.src = 'https://i.imgur.com/HbIUh79.jpeg';
+    assets.gameBackgroundImage.crossOrigin = "Anonymous"; assets.gameBackgroundImage.src = 'https://i.imgur.com/mLFWuDo.jpeg';
 
     function loadAsset(asset) {
         return new Promise((resolve) => {
@@ -211,7 +211,7 @@
         });
 
 
-    function onAllAssetsLoaded() {
+    function onAllAssded() {
         const elapsedTime = Date.now() - splashStartTime;
         const remainingTime = 3000 - elapsedTime;
 
